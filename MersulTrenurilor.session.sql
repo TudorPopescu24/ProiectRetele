@@ -1,1 +1,1 @@
-select * from InfoTren;
+select * from InfoTren where TIMESTAMPDIFF(minute, TIME(data_plecare), TIME(NOW())) <= 60 AND date(data_plecare) = CURRENT_DATE;

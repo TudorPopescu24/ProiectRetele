@@ -29,6 +29,35 @@ string read_client()
     return msg;
 }
 
+void getInfoDepartures(string msg, int sd)
+{
+    char answerFromServer[1000];
+    if (write(sd, msg.c_str(), 100) <= 0)
+    {
+        perror("[client]Eroare la write() spre server.\n");
+        return;
+    }
+    //citirea raspunsului dat de server (apel blocant pina cind serverul raspunde)
+    if (read(sd, answerFromServer, 1000) < 0)
+    {
+        perror("[client]Eroare la read() de la server.\n");
+        return;
+    }
+    cout << "Informatii despre plecarile din urmatoarea ora:\n";
+    auto jsonAnswer = json::parse(answerFromServer);
+    for (json::iterator i = jsonAnswer.begin(); i != jsonAnswer.end(); ++i)
+    {
+        json j = *i;
+        cout << "-----------------------------------------------------------" << endl;
+        cout << "Id tren: " << j["id"] << endl;
+        cout << "Data plecare: " << j["data_plecare"] << endl;
+        cout << "Data sosire: " << j["data_sosire"] << endl;
+        cout << "Statie plecare: " << j["statie_plecare"] << endl;
+        cout << "Statie sosire: " << j["statie_sosire"] << endl;
+    }
+    cout << "-----------------------------------------------------------" << endl;
+}
+
 void getInfoToday(string msg, int sd)
 {
     char answerFromServer[1000];
@@ -67,6 +96,10 @@ void treat(string msg, int sd)
     if (msg == "getInfoToday")
     {
         getInfoToday(msg, sd);
+    }
+    if (msg == "getInfoDepartures")
+    {
+        getInfoDepartures(msg, sd);
     }
 }
 

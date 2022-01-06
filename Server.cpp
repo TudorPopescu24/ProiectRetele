@@ -29,6 +29,7 @@ typedef struct thData
 static void *treat(void *); /* functia executata de fiecare thread ce realizeaza comunicarea cu clientii */
 void raspunde(void *);
 void getInfoToday(MYSQL *con, struct thData tdL);
+void getDepartures(MYSQL *con, struct thData tdL);
 
 struct connection_details
 {
@@ -76,7 +77,6 @@ int main()
     int pid;
     pthread_t th[100]; //Identificatorii thread-urilor care se vor crea
     int i = 0;
-
     /* crearea unui socket */
     if ((sd = socket(AF_INET, SOCK_STREAM, 0)) == -1)
     {
@@ -86,11 +86,9 @@ int main()
     /* utilizarea optiunii SO_REUSEADDR */
     int on = 1;
     setsockopt(sd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
-
     /* pregatirea structurilor de date */
     bzero(&server, sizeof(server));
     bzero(&from, sizeof(from));
-
     /* umplem structura folosita de server */
     /* stabilirea familiei de socket-uri */
     server.sin_family = AF_INET;
@@ -98,14 +96,12 @@ int main()
     server.sin_addr.s_addr = htonl(INADDR_ANY);
     /* utilizam un port utilizator */
     server.sin_port = htons(PORT);
-
     /* atasam socketul */
     if (bind(sd, (struct sockaddr *)&server, sizeof(struct sockaddr)) == -1)
     {
         perror("[server]Eroare la bind().\n");
         return errno;
     }
-
     /* punem serverul sa asculte daca vin clienti sa se conecteze */
     if (listen(sd, 2) == -1)
     {
@@ -129,18 +125,11 @@ int main()
             perror("[server]Eroare la accept().\n");
             continue;
         }
-
         /* s-a realizat conexiunea, se astepta mesajul */
-
-        // int idThread; //id-ul threadului
-        // int cl; //descriptorul intors de accept
-
         td = (struct thData *)malloc(sizeof(struct thData));
         td->idThread = i++;
         td->cl = client;
-
         pthread_create(&th[i], NULL, &treat, td);
-
     } //while
 };
 static void *treat(void *arg)
@@ -180,6 +169,10 @@ void raspunde(void *arg)
     {
         getInfoToday(con, tdL);
     }
+    else if (mesaj == "getInfoDepartures")
+    {
+        getDepartures(con, tdL);
+    }
 
     // close database connection
     mysql_close(con);
@@ -190,7 +183,36 @@ void getInfoToday(MYSQL *con, struct thData tdL)
     MYSQL_RES *res; // the results
     MYSQL_ROW row;  // the results rows (array)
     json answer = json::array();
-    res = mysql_perform_query(con, "select * from InfoTren;");
+    res = mysql_perform_query(con, "select * from InfoTren where (Date(data_plecare) = CURDATE()) OR (Date(data_sosire) = CURDATE());");
+    while ((row = mysql_fetch_row(res)) != NULL)
+    {
+        json j;
+        j["id"] = row[0];
+        j["statie_plecare"] = row[1];
+        j["statie_sosire"] = row[2];
+        j["data_plecare"] = row[3];
+        j["data_sosire"] = row[4];
+        answer.push_back(j);
+    }
+    string s = answer.dump();
+    /* returnam mesajul clientului */
+    if (write(tdL.cl, s.c_str(), 1000) <= 0)
+    {
+        printf("[Thread %d] ", tdL.idThread);
+        perror("[Thread]Eroare la write() catre client.\n");
+    }
+    else
+        printf("[Thread %d]Mesajul a fost trasmis cu succes.\n", tdL.idThread);
+    // clean up the database result
+    mysql_free_result(res);
+}
+
+void getDepartures(MYSQL *con, struct thData tdL)
+{
+    MYSQL_RES *res; // the results
+    MYSQL_ROW row;  // the results rows (array)
+    json answer = json::array();
+    res = mysql_perform_query(con, "select * from InfoTren where TIMESTAMPDIFF(minute, TIME(data_plecare), TIME(NOW())) <= 60 AND date(data_plecare) = CURRENT_DATE;");
     while ((row = mysql_fetch_row(res)) != NULL)
     {
         json j;
