@@ -36,7 +36,7 @@ typedef struct thData
 } thData;
 
 static void *treat(void *); /* functia executata de fiecare thread ce realizeaza comunicarea cu clientii */
-void raspunde(void *);
+bool raspunde(void *);
 void getInfoToday(MYSQL *con, struct thData tdL);
 void getDepartures(MYSQL *con, struct thData tdL);
 void getArrivals(MYSQL *con, struct thData tdL);
@@ -163,16 +163,17 @@ static void *treat(void *arg)
     fflush(stdout);
 
     pthread_detach(pthread_self());
-    while (1)
+    bool exit = false;
+    while (!exit)
     {
-        raspunde((struct thData *)arg);
+        exit = raspunde((struct thData *)arg);
     }
     /* am terminat cu acest client, inchidem conexiunea */
     close((intptr_t)arg);
     return (NULL);
 };
 
-void raspunde(void *arg)
+bool raspunde(void *arg)
 {
     int i = 0;
     char msg[100];
@@ -184,6 +185,7 @@ void raspunde(void *arg)
     tdL = *((struct thData *)arg);
     if (read(tdL.cl, msg, 100) <= 0)
     {
+        return true;
         printf("[Thread %d]\n", tdL.idThread);
         perror("Eroare la read() de la client.\n");
     }
@@ -205,6 +207,7 @@ void raspunde(void *arg)
 
     // close database connection
     mysql_close(con);
+    return false;
 }
 
 void getInfoToday(MYSQL *con, struct thData tdL)
