@@ -1,1 +1,1 @@
-select * from InfoTren where TIMESTAMPDIFF(minute, TIME(data_plecare), TIME(NOW())) <= 60 AND date(data_plecare) = CURRENT_DATE;
+select * from InfoTren where ABS(TIMESTAMPDIFF(minute, TIME(data_sosire), TIME(NOW()))) <= 60 AND date(data_sosire) = CURRENT_DATE;
