@@ -197,19 +197,19 @@ bool raspunde(void *arg)
 
     string mesaj(msg);
 
-    if (mesaj == "getInfoToday")
+    if (mesaj == "getInfoToday") // mersul trenurilor de astazi
     {
         getInfoToday(con, tdL);
     }
-    else if (mesaj == "getInfoDepartures")
+    else if (mesaj == "getInfoDepartures") // plecarile din urmatoarea ora
     {
         getDepartures(con, tdL);
     }
-    else if (mesaj == "getInfoArrivals")
+    else if (mesaj == "getInfoArrivals") // sosirile din urmatoarea ora
     {
         getArrivals(con, tdL);
     }
-    else if (mesaj.find("ID") != string::npos)
+    else if (mesaj.find("ID") != string::npos) // verifica daca user-ul a introdus un id corect si actualizeaza informatii
     {
         checkIfTrainExists(con, tdL, mesaj);
     }
@@ -223,8 +223,8 @@ void getInfoToday(MYSQL *con, struct thData tdL)
 {
     MYSQL_RES *res; // the results
     MYSQL_ROW row;  // the results rows (array)
-    json answer = json::array();
     res = mysql_perform_query(con, "select id, plecare, sosire, data_plecare, data_sosire from InfoTren where (Date(data_plecare) = CURDATE()) OR (Date(data_sosire) = CURDATE());");
+    json answer = json::array();
     while ((row = mysql_fetch_row(res)) != NULL)
     {
         json j;
@@ -354,19 +354,19 @@ void checkIfTrainExists(MYSQL *con, struct thData tdL, string mesaj)
             perror("Eroare la read() de la client.\n");
         }
         string command(msg);
-        if (command.find("sendLateDeparture") != string::npos)
+        if (command.find("sendLateDeparture") != string::npos) // actualizare intarziere plecare
         {
             sendLateDeparture(con, command.substr(18, 4), idTren);
         }
-        else if (command.find("sendLateArrival") != string::npos)
+        else if (command.find("sendLateArrival") != string::npos) // actualizare intarziere sosire
         {
             sendLateArrival(con, command.substr(16, 4), idTren);
         }
-        else if (command.find("sendEarlyDeparture") != string::npos)
+        else if (command.find("sendEarlyDeparture") != string::npos) // actualizare plecare mai devreme
         {
             sendEarlyDeparture(con, command.substr(19, 4), idTren);
         }
-        else if (command.find("sendEarlyArrival") != string::npos)
+        else if (command.find("sendEarlyArrival") != string::npos) // actualizare sosire mai devreme
         {
             sendEarlyArrival(con, command.substr(17, 4), idTren);
         }

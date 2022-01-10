@@ -257,6 +257,7 @@ void treat(string msg, int sd)
         cout << "'getInfoDepartures' - Afiseaza informatii despre plecarile trenurilor din urmatoarea ora." << endl;
         cout << "'getInfoArrivals' - Afiseaza informatii despre sosirile trenurilor din urmatoarea ora." << endl;
         cout << "'sendInfo' - Deschide meniul pentru transmiterea de informatii despre trenuri." << endl;
+        cout << "'quit' - Iesire din aplicatie." << endl;
         cout << endl;
     }
     else if (msg == "getInfoToday")
@@ -331,7 +332,7 @@ int main(int argc, char *argv[])
         cout << "Introduceti o comanda: ";
         flush(cout);
         string mesaj = read_client();
-        if (mesaj == "exit")
+        if (mesaj == "quit")
         {
             cout << endl;
             cout << "Ati iesit din aplicatie.\n";
