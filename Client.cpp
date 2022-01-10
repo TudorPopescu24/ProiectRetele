@@ -103,6 +103,58 @@ void getInfoArrivals(string msg, int sd)
     }
 }
 
+void sendInfo(int sd)
+{
+    char answerFromServer[1000];
+    string id, msg;
+    cout << "Introduceti id-ul trenului despre care doriti sa transmiteti informatii: ";
+    cin >> id;
+    msg = "ID:" + id;
+    cout << msg << endl;
+    if (write(sd, msg.c_str(), 100) <= 0)
+    {
+        perror("[client]Eroare la write() spre server.\n");
+        return;
+    }
+    //citirea raspunsului dat de server (apel blocant pina cind serverul raspunde)
+    if (read(sd, answerFromServer, 1000) < 0)
+    {
+        perror("[client]Eroare la read() de la server.\n");
+        return;
+    }
+    if (strstr(answerFromServer, "false")) {
+        cout << "Nu exista niciun tren cu id-ul " << id << ".\n" << endl;;
+        return;
+    }
+    else if (strstr(answerFromServer, "true")) {
+        string command;
+        cout << "Am gasit trenul cu id-ul " << id << ":\n";
+        auto jsonAnswer = json::parse(answerFromServer + 4);
+        cout << endl;
+        cout << "Id tren: " << jsonAnswer["id"] << endl;
+        cout << "Data plecare: " << jsonAnswer["data_plecare"] << endl;
+        cout << "Data sosire: " << jsonAnswer["data_sosire"] << endl;
+        cout << "Statie plecare: " << jsonAnswer["statie_plecare"] << endl;
+        cout << "Statie sosire: " << jsonAnswer["statie_sosire"] << endl;
+        cout << endl;
+
+        cout << "In functie de tipul de informatie pe care doriti sa il trimiteti, puteti folosi urmatoarele comenzi:\n";
+        cout << "'sendLateDeparture:[mins]' - trimiteti o intarziere a plecarii trenului cu [mins] minute.\n";
+        cout << "'sendLateArrival:[mins]' - trimiteti o intarziere a sosirii trenului cu [mins] minute.\n";
+        cout << "'sendEarlyDeparture:[mins]' - trimiteti o plecare mai devreme a trenului cu [mins] minute.\n";
+        cout << "'sendEarlyArrival:[mins]' - trimiteti o sosire mai devreme a trenului cu [mins] minute.\n";
+        cout << endl;
+        cout << "Introduceti o comanda pentru a transmite informatiile: ";
+        cin >> command;
+        if (write(sd, command.c_str(), 100) <= 0)
+        {
+            perror("[client]Eroare la write() spre server.\n");
+            return;
+        }
+        
+    }
+}
+
 void getInfoToday(string msg, int sd)
 {
     char answerFromServer[1000];
@@ -165,7 +217,12 @@ void treat(string msg, int sd)
     {
         getInfoArrivals(msg, sd);
     }
-    else {
+    else if (msg == "sendInfo")
+    {
+        sendInfo(sd);
+    }
+    else
+    {
         cout << endl;
         cout << "Ati introdus o comanda gresita." << endl;
         cout << endl;

@@ -40,6 +40,11 @@ bool raspunde(void *);
 void getInfoToday(MYSQL *con, struct thData tdL);
 void getDepartures(MYSQL *con, struct thData tdL);
 void getArrivals(MYSQL *con, struct thData tdL);
+void checkIfTrainExists(MYSQL *con, struct thData tdL, string mesaj);
+void sendLateDeparture(MYSQL *con, string minutes, string id);
+void sendLateArrival(MYSQL *con, string minutes, string id);
+void sendEarlyDeparture(MYSQL *con, string minutes, string id);
+void sendEarlyArrival(MYSQL *con, string minutes, string id);
 
 struct connection_details
 {
@@ -204,6 +209,10 @@ bool raspunde(void *arg)
     {
         getArrivals(con, tdL);
     }
+    else if (mesaj.find("ID") != string::npos)
+    {
+        checkIfTrainExists(con, tdL, mesaj);
+    }
 
     // close database connection
     mysql_close(con);
@@ -295,4 +304,91 @@ void getArrivals(MYSQL *con, struct thData tdL)
         printf("[Thread %d]Mesajul a fost trasmis cu succes.\n", tdL.idThread);
     // clean up the database result
     mysql_free_result(res);
+}
+
+void checkIfTrainExists(MYSQL *con, struct thData tdL, string mesaj)
+{
+    char msg[100];
+    MYSQL_RES *res; // the results
+    MYSQL_ROW row;  // the results rows (array)
+    string idTren = mesaj.substr(3, 3);
+    string query = "select * from InfoTren where id = " + idTren + ";";
+    res = mysql_perform_query(con, query.c_str());
+    if ((row = mysql_fetch_row(res)) == NULL)
+    {
+        if (write(tdL.cl, "false", 1000) <= 0)
+        {
+            printf("[Thread %d] ", tdL.idThread);
+            perror("[Thread]Eroare la write() catre client.\n");
+        }
+        else
+            printf("[Thread %d]Mesajul a fost trasmis cu succes.\n", tdL.idThread);
+        mysql_free_result(res);
+    }
+    else
+    {
+        json j;
+        j["id"] = row[0];
+        j["statie_plecare"] = row[1];
+        j["statie_sosire"] = row[2];
+        j["data_plecare"] = row[3];
+        j["data_sosire"] = row[4];
+        string s = "true" + j.dump();
+        if (write(tdL.cl, s.c_str(), 1000) <= 0)
+        {
+            printf("[Thread %d] ", tdL.idThread);
+            perror("[Thread]Eroare la write() catre client.\n");
+        }
+        else
+            printf("[Thread %d]Mesajul a fost trasmis cu succes.\n", tdL.idThread);
+        mysql_free_result(res);
+
+        if (read(tdL.cl, msg, 100) <= 0)
+        {
+            return;
+            printf("[Thread %d]\n", tdL.idThread);
+            perror("Eroare la read() de la client.\n");
+        }
+        string command(msg);
+        if (command.find("sendLateDeparture") != string::npos)
+        {
+            sendLateDeparture(con, command.substr(18, 4), idTren);
+        }
+        else if (command.find("sendLateArrival") != string::npos)
+        {
+            sendLateArrival(con, command.substr(16, 4), idTren);
+        }
+        else if (command.find("sendEarlyDeparture") != string::npos)
+        {
+            sendEarlyDeparture(con, command.substr(19, 4), idTren);
+        }
+        else if (command.find("sendEarlyArrival") != string::npos)
+        {
+            sendEarlyArrival(con, command.substr(17, 4), idTren);
+        }
+    }
+}
+
+void sendLateDeparture(MYSQL *con, string minutes, string id)
+{
+    MYSQL_RES *res; // the results
+    MYSQL_ROW row;  // the results rows (array)
+    string query = "UPDATE InfoTren SET intarziere_plecare = intarziere_plecare + " + minutes + ", intarziere_sosire = intarziere_sosire + " + minutes + " WHERE id = " + id + ";";
+    cout << query << endl;
+    res = mysql_perform_query(con, query.c_str());
+}
+
+void sendLateArrival(MYSQL *con, string minutes, string id)
+{
+    cout << minutes << endl;
+}
+
+void sendEarlyDeparture(MYSQL *con, string minutes, string id)
+{
+    cout << minutes << endl;
+}
+
+void sendEarlyArrival(MYSQL *con, string minutes, string id)
+{
+    cout << minutes << endl;
 }
