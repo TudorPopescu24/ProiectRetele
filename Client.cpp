@@ -59,6 +59,26 @@ void getInfoDepartures(string msg, int sd)
             cout << "Data sosire: " << j["data_sosire"] << endl;
             cout << "Statie plecare: " << j["statie_plecare"] << endl;
             cout << "Statie sosire: " << j["statie_sosire"] << endl;
+            string intarziere = j["intarziere"].dump();
+            intarziere.erase(0, 1);
+            intarziere.erase(2, 1);
+            string devreme = j["devreme"].dump();
+            devreme.erase(0, 1);
+            devreme.erase(2, 1);
+            int minutesLate = stoi(intarziere);
+            int minutesEarly = stoi(devreme);
+            if ((minutesLate - minutesEarly) == 0)
+            {
+                cout << "Trenul va pleca conform planului.\n";
+            }
+            else if ((minutesLate - minutesEarly) > 0)
+            {
+                cout << "Trenul va pleca cu o intarziere de " << minutesLate - minutesEarly << " de minute.\n";
+            }
+            else
+            {
+                cout << "Trenul va pleca mai devreme cu  " << minutesEarly - minutesLate << " de minute.\n";
+            }
         }
         cout << endl;
     }
@@ -98,6 +118,26 @@ void getInfoArrivals(string msg, int sd)
             cout << "Data sosire: " << j["data_sosire"] << endl;
             cout << "Statie plecare: " << j["statie_plecare"] << endl;
             cout << "Statie sosire: " << j["statie_sosire"] << endl;
+            string intarziere = j["intarziere"].dump();
+            intarziere.erase(0, 1);
+            intarziere.erase(2, 1);
+            string devreme = j["devreme"].dump();
+            devreme.erase(0, 1);
+            devreme.erase(2, 1);
+            int minutesLate = stoi(intarziere);
+            int minutesEarly = stoi(devreme);
+            if ((minutesLate - minutesEarly) == 0)
+            {
+                cout << "Trenul va ajunge conform planului.\n";
+            }
+            else if ((minutesLate - minutesEarly) > 0)
+            {
+                cout << "Trenul va ajunge cu o intarziere de " << minutesLate - minutesEarly << " de minute.\n";
+            }
+            else
+            {
+                cout << "Trenul va ajunge mai devreme cu " << minutesEarly - minutesLate << " de minute.\n";
+            }
         }
         cout << endl;
     }
@@ -122,11 +162,15 @@ void sendInfo(int sd)
         perror("[client]Eroare la read() de la server.\n");
         return;
     }
-    if (strstr(answerFromServer, "false")) {
-        cout << "Nu exista niciun tren cu id-ul " << id << ".\n" << endl;;
+    if (strstr(answerFromServer, "false"))
+    {
+        cout << "Nu exista niciun tren cu id-ul " << id << ".\n"
+             << endl;
+        ;
         return;
     }
-    else if (strstr(answerFromServer, "true")) {
+    else if (strstr(answerFromServer, "true"))
+    {
         string command;
         cout << "Am gasit trenul cu id-ul " << id << ":\n";
         auto jsonAnswer = json::parse(answerFromServer + 4);
@@ -146,12 +190,21 @@ void sendInfo(int sd)
         cout << endl;
         cout << "Introduceti o comanda pentru a transmite informatiile: ";
         cin >> command;
-        if (write(sd, command.c_str(), 100) <= 0)
+        if (command.find("sendLateDeparture") != string::npos ||
+            command.find("sendLateArrival") != string::npos ||
+            command.find("sendEarlyDeparture") != string::npos ||
+            command.find("sendEarlyArrival") != string::npos)
         {
-            perror("[client]Eroare la write() spre server.\n");
-            return;
+            if (write(sd, command.c_str(), 100) <= 0)
+            {
+                perror("[client]Eroare la write() spre server.\n");
+                return;
+            }
+            cout << "Informatiile au fost actualizate cu succes.\n";
         }
-        
+        else
+            cout << "Comanda gresita. Incercati din nou.\n";
+        cout << endl;
     }
 }
 
@@ -203,6 +256,7 @@ void treat(string msg, int sd)
         cout << "'getInfoToday' - Afiseaza informatii despre mersul trenurilor de astazi." << endl;
         cout << "'getInfoDepartures' - Afiseaza informatii despre plecarile trenurilor din urmatoarea ora." << endl;
         cout << "'getInfoArrivals' - Afiseaza informatii despre sosirile trenurilor din urmatoarea ora." << endl;
+        cout << "'sendInfo' - Deschide meniul pentru transmiterea de informatii despre trenuri." << endl;
         cout << endl;
     }
     else if (msg == "getInfoToday")

@@ -224,7 +224,7 @@ void getInfoToday(MYSQL *con, struct thData tdL)
     MYSQL_RES *res; // the results
     MYSQL_ROW row;  // the results rows (array)
     json answer = json::array();
-    res = mysql_perform_query(con, "select * from InfoTren where (Date(data_plecare) = CURDATE()) OR (Date(data_sosire) = CURDATE());");
+    res = mysql_perform_query(con, "select id, plecare, sosire, data_plecare, data_sosire from InfoTren where (Date(data_plecare) = CURDATE()) OR (Date(data_sosire) = CURDATE());");
     while ((row = mysql_fetch_row(res)) != NULL)
     {
         json j;
@@ -253,7 +253,7 @@ void getDepartures(MYSQL *con, struct thData tdL)
     MYSQL_RES *res; // the results
     MYSQL_ROW row;  // the results rows (array)
     json answer = json::array();
-    res = mysql_perform_query(con, "select * from InfoTren where TIMESTAMPDIFF(minute, TIME(data_plecare), TIME(NOW())) <= 60 AND date(data_plecare) = CURRENT_DATE;");
+    res = mysql_perform_query(con, "select id, plecare, sosire, data_plecare, data_sosire, intarziere_plecare, mai_devreme_plecare from InfoTren where ABS(TIMESTAMPDIFF(minute, TIME(data_plecare), TIME(NOW()))) <= 60 AND date(data_plecare) = CURRENT_DATE;");
     while ((row = mysql_fetch_row(res)) != NULL)
     {
         json j;
@@ -262,6 +262,8 @@ void getDepartures(MYSQL *con, struct thData tdL)
         j["statie_sosire"] = row[2];
         j["data_plecare"] = row[3];
         j["data_sosire"] = row[4];
+        j["intarziere"] = row[5];
+        j["devreme"] = row[6];
         answer.push_back(j);
     }
     string s = answer.dump();
@@ -282,7 +284,7 @@ void getArrivals(MYSQL *con, struct thData tdL)
     MYSQL_RES *res; // the results
     MYSQL_ROW row;  // the results rows (array)
     json answer = json::array();
-    res = mysql_perform_query(con, "select * from InfoTren where ABS(TIMESTAMPDIFF(minute, TIME(data_sosire), TIME(NOW()))) <= 60 AND date(data_sosire) = CURRENT_DATE;");
+    res = mysql_perform_query(con, "select id, plecare, sosire, data_sosire, data_sosire, intarziere_sosire, mai_devreme_sosire from InfoTren where ABS(TIMESTAMPDIFF(minute, TIME(data_sosire), TIME(NOW()))) <= 60 AND date(data_sosire) = CURRENT_DATE;");
     while ((row = mysql_fetch_row(res)) != NULL)
     {
         json j;
@@ -291,6 +293,8 @@ void getArrivals(MYSQL *con, struct thData tdL)
         j["statie_sosire"] = row[2];
         j["data_plecare"] = row[3];
         j["data_sosire"] = row[4];
+        j["intarziere"] = row[5];
+        j["devreme"] = row[6];
         answer.push_back(j);
     }
     string s = answer.dump();
@@ -374,21 +378,29 @@ void sendLateDeparture(MYSQL *con, string minutes, string id)
     MYSQL_RES *res; // the results
     MYSQL_ROW row;  // the results rows (array)
     string query = "UPDATE InfoTren SET intarziere_plecare = intarziere_plecare + " + minutes + ", intarziere_sosire = intarziere_sosire + " + minutes + " WHERE id = " + id + ";";
-    cout << query << endl;
     res = mysql_perform_query(con, query.c_str());
 }
 
 void sendLateArrival(MYSQL *con, string minutes, string id)
 {
-    cout << minutes << endl;
+    MYSQL_RES *res; // the results
+    MYSQL_ROW row;  // the results rows (array)
+    string query = "UPDATE InfoTren SET intarziere_sosire = intarziere_sosire + " + minutes + " WHERE id = " + id + ";";
+    res = mysql_perform_query(con, query.c_str());
 }
 
 void sendEarlyDeparture(MYSQL *con, string minutes, string id)
 {
-    cout << minutes << endl;
+    MYSQL_RES *res; // the results
+    MYSQL_ROW row;  // the results rows (array)
+    string query = "UPDATE InfoTren SET mai_devreme_plecare = mai_devreme_plecare + " + minutes + ", mai_devreme_sosire = mai_devreme_sosire + " + minutes + " WHERE id = " + id + ";";
+    res = mysql_perform_query(con, query.c_str());
 }
 
 void sendEarlyArrival(MYSQL *con, string minutes, string id)
 {
-    cout << minutes << endl;
+    MYSQL_RES *res; // the results
+    MYSQL_ROW row;  // the results rows (array)
+    string query = "UPDATE InfoTren SET mai_devreme_sosire = mai_devreme_sosire + " + minutes + " WHERE id = " + id + ";";
+    res = mysql_perform_query(con, query.c_str());
 }

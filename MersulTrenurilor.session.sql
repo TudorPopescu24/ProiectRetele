@@ -1,1 +1,1 @@
-select * from InfoTren where ABS(TIMESTAMPDIFF(minute, TIME(data_sosire), TIME(NOW()))) <= 60 AND date(data_sosire) = CURRENT_DATE;
+select id, plecare, sosire, date_sub(date_add(data_plecare, interval intarziere_plecare minute), interval mai_devreme_plecare minute), date_sub(date_add(data_sosire, interval intarziere_sosire minute), interval mai_devreme_sosire minute) from InfoTren;
